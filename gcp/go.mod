@@ -42,4 +42,4 @@ require (
 	google.golang.org/protobuf v1.33.0 // indirect
 )
 
-replace github.com/salrashid123/kmsrand => ../
+//replace github.com/salrashid123/kmsrand => ../

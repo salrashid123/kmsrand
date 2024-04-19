@@ -48,7 +48,6 @@ func (r *GCPReader) Read(data []byte) (n int, err error) {
 	if len(data) > MAX_BYTES {
 		return 0, errors.New("kmsrand: Number of bytes to read exceeds cannot 1024")
 	}
-
 	originalLength := len(data) // sometimes len(data) < 8
 	if len(data) < 8 {
 		data = make([]byte, 8)
@@ -76,5 +75,5 @@ func (r *GCPReader) Read(data []byte) (n int, err error) {
 		return 0, err
 	}
 
-	return len(result), err
+	return len(result), nil
 }

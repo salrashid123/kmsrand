@@ -53,7 +53,7 @@ func main() {
 	fmt.Println()
 
 	// /// RSA keygen
-	privkey, err := rsa.GenerateKey(r, 512)
+	privkey, err := rsa.GenerateKey(r, 2048)
 	if err != nil {
 		fmt.Printf("%v\n", err)
 		return

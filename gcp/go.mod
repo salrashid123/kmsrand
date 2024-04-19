@@ -5,7 +5,7 @@ go 1.21
 require (
 	cloud.google.com/go/kms v1.15.8
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/salrashid123/kmsrand v0.0.0
+	github.com/salrashid123/kmsrand v0.0.0-20240419172308-e58279d05f07
 )
 
 require (

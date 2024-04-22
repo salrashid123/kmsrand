@@ -20,6 +20,9 @@ Just note that asking for random stuff isnt' free...nothing is free
 
 >> this repo is *not* supported by google
 
+
+update 4/22:  i realized after i wrote this on friday that the gcp kms backed on already exists [sethvargo/gcpkms-rand](https://github.com/sethvargo/gcpkms-rand).  The difference with this implementation is the interface and support for AWS.
+
 ---
 
 From there, the usage is simple:

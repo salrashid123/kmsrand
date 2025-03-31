@@ -2,7 +2,6 @@ package gcpkms
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 
@@ -14,7 +13,8 @@ import (
 )
 
 const (
-	MAX_BYTES = 1024 // https://cloud.google.com/kms/docs/reference/rest/v1/projects.locations/generateRandomBytes
+	MIN_BYTES = 8 // https://cloud.google.com/kms/docs/reference/rest/v1/projects.locations/generateRandomBytes
+	MAX_BYTES = 1024
 )
 
 type GCPReader struct {
@@ -45,35 +45,38 @@ func NewGCPRand(conf *GCPReader) (*GCPReader, error) {
 func (r *GCPReader) Read(data []byte) (n int, err error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if len(data) > MAX_BYTES {
-		return 0, errors.New("kmsrand: Number of bytes to read exceeds cannot 1024")
-	}
-	originalLength := len(data) // sometimes len(data) < 8
-	if len(data) < 8 {
-		data = make([]byte, 8)
-	}
+
 	var result []byte
-	operation := func() (err error) {
-		resp, err := r.Client.GenerateRandomBytes(context.Background(), &kmspb.GenerateRandomBytesRequest{
-			Location:        r.Location,
-			LengthBytes:     int32(len(data)),
-			ProtectionLevel: r.ProtectionLevel,
-		})
-		if err != nil {
-			fmt.Printf("%v\n", err)
-			return err
+	for i := 0; i < len(data); i += MAX_BYTES {
+		end := i + MAX_BYTES
+		if end > len(data) {
+			end = len(data)
 		}
-		result = resp.Data[:originalLength] // reset to the original ask of random data
-		copy(data, result)
-		return nil
-	}
+		chunk := data[i:end]
 
-	// dont' know which scheme is better, probably the constant
-	//err = backoff.Retry(operation, backoff.NewExponentialBackOff())
-	err = backoff.Retry(operation, r.Scheme)
-	if err != nil {
-		return 0, err
-	}
+		if len(chunk) < MIN_BYTES {
+			chunk = make([]byte, MIN_BYTES)
+		}
 
-	return len(result), nil
+		operation := func() (err error) {
+			resp, err := r.Client.GenerateRandomBytes(context.Background(), &kmspb.GenerateRandomBytesRequest{
+				Location:        r.Location,
+				LengthBytes:     int32(len(chunk)),
+				ProtectionLevel: r.ProtectionLevel,
+			})
+			if err != nil {
+				fmt.Printf("%v\n", err)
+				return err
+			}
+			result = append(result, resp.Data...)
+			return nil
+		}
+		err = backoff.Retry(operation, r.Scheme)
+		if err != nil {
+			return 0, err
+		}
+
+	}
+	copy(data, result)
+	return len(result), err
 }

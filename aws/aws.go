@@ -11,7 +11,10 @@ import (
 	kmsrand "github.com/salrashid123/kmsrand"
 )
 
-const ()
+const (
+	MIN_BYTES = 1
+	MAX_BYTES = 1024
+)
 
 type AWSReader struct {
 	kmsrand.RandSource
@@ -31,38 +34,47 @@ func NewAWSRand(conf *AWSReader) (*AWSReader, error) {
 	}
 	return conf, nil
 }
-
 func (r *AWSReader) Read(data []byte) (n int, err error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
 	var result []byte
-	operation := func() (err error) {
-		input := &kms.GenerateRandomInput{
-			NumberOfBytes: aws.Int64(int64(len(data))),
+	for i := 0; i < len(data); i += MAX_BYTES {
+		end := i + MAX_BYTES
+		if end > len(data) {
+			end = len(data)
+		}
+		chunk := data[i:end]
+
+		if len(chunk) < MIN_BYTES {
+			chunk = make([]byte, MIN_BYTES)
 		}
 
-		if r.CustomerKeyStoreId != "" {
-			input.CustomKeyStoreId = aws.String(r.CustomerKeyStoreId)
-		}
+		operation := func() (err error) {
 
-		randomBytes, err := r.Service.GenerateRandom(input)
+			input := &kms.GenerateRandomInput{
+				NumberOfBytes: aws.Int64(int64(len(chunk))),
+			}
+
+			if r.CustomerKeyStoreId != "" {
+				input.CustomKeyStoreId = aws.String(r.CustomerKeyStoreId)
+			}
+
+			randomBytes, err := r.Service.GenerateRandom(input)
+			if err != nil {
+				fmt.Printf("Error generating aws random:  %v", err)
+				return err
+			}
+
+			result = append(result, randomBytes.Plaintext...)
+			return nil
+		}
+		err = backoff.Retry(operation, r.Scheme)
 		if err != nil {
-			fmt.Printf("Error generating aws random:  %v", err)
-			return err
+			return 0, err
 		}
 
-		result = randomBytes.Plaintext
-		copy(data, result)
-
-		return nil
 	}
-
-	// dont' know which scheme is better, probably the constant
-	//err = backoff.Retry(operation, backoff.NewExponentialBackOff())
-	err = backoff.Retry(operation, r.Scheme)
-	if err != nil {
-		return 0, err
-	}
-
-	return len(result), nil
+	copy(data, result)
+	return len(result), err
 }

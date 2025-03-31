@@ -1,10 +1,7 @@
 package main
 
 import (
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/base64"
-	"encoding/pem"
 	"fmt"
 	"os"
 
@@ -42,23 +39,6 @@ func main() {
 		fmt.Printf("%v\n", err)
 		return
 	}
-	fmt.Printf("Random String: %s", base64.StdEncoding.EncodeToString(randomBytes))
-
-	fmt.Println()
-
-	/// RSA keygen
-	privkey, err := rsa.GenerateKey(r, 2048)
-	if err != nil {
-		fmt.Printf("%v\n", err)
-		return
-	}
-
-	keyPEM := pem.EncodeToMemory(
-		&pem.Block{
-			Type:  "RSA PRIVATE KEY",
-			Bytes: x509.MarshalPKCS1PrivateKey(privkey),
-		},
-	)
-	fmt.Printf("RSA Key: \n%s\n", keyPEM)
+	fmt.Printf("Random String: %s\n", base64.StdEncoding.EncodeToString(randomBytes))
 
 }
